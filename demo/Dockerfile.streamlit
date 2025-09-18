@@ -1,0 +1,39 @@
+# Base image with essential system dependencies
+FROM python:3.10-slim-bullseye AS base
+
+# Set environment variables
+ENV POETRY_VERSION=1.8.2 \
+    POETRY_HOME=/opt/poetry \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_CACHE_DIR=/tmp/poetry_cache \
+    PATH="/opt/poetry/bin:$PATH"
+
+# Install necessary dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry
+RUN pip3 install "poetry==$POETRY_VERSION"
+
+# Create working directory
+WORKDIR /app
+
+# Copy Streamlit specific files
+COPY demo/streamlit_app.py demo/utils.py ./demo/
+COPY demo/pyproject.toml ./pyproject.toml
+
+# Install dependencies using cache mount
+RUN --mount=type=cache,target=/tmp/poetry_cache \
+    poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi
+
+# Remove build dependencies
+RUN apt-get purge -y gcc && rm -rf /var/lib/apt/lists/* /tmp/poetry_cache
+
+# Expose Streamlit port
+EXPOSE 8501
+
+# Run Streamlit with proper network settings
+CMD ["poetry", "run", "streamlit", "run", "demo/streamlit_app.py", "--server.address=0.0.0.0", "--server.port=8501"]

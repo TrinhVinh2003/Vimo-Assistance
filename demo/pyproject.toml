@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "streamlit-app"
+version = "0.1.0"
+description = "Streamlit frontend for the API"
+authors = ["Your Name <your.email@example.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.9.7 || >3.9.7,<4.0"
+streamlit = "^1.42.2"
+requests = "^2.31.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

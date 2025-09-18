@@ -1,0 +1,65 @@
+services:
+  vectordb:
+    image: pgvector/pgvector:pg16
+    container_name: vectordb
+    ports:
+      - "5432:5432"
+    restart: always
+    environment:
+      PGUSER: ${PGVECTOR_USER:-postgres}
+      POSTGRES_PASSWORD: ${PGVECTOR_PASSWORD:-admin}
+      POSTGRES_DB: ${PGVECTOR_DB:-vectordb}
+      PGDATA: ${PGVECTOR_PGDATA:-/var/lib/postgresql/data/pgdata}
+    volumes:
+      - pgvector_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    networks:
+      - vimo_network
+
+  api:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: vimo:${VERSION:-latest}
+    # depends_on:
+    #   - vectordb
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    restart: always
+    volumes:
+      - .:/app/src/
+    env_file:
+      - .env
+    networks:
+      - vimo_network
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: ./demo/Dockerfile.streamlit
+    image: streamlit-app:${VERSION:-latest}
+    depends_on:
+      - api
+    ports:
+      - "${STREAMLIT_PORT:-8501}:8501"
+    env_file:
+      - .env
+    environment:
+      - API_HOST=${API_HOST:-api}
+      - API_PORT=${PORT:-8888}
+      - SERVICE_URL=${PUBLIC_DOMAIN}
+    volumes:
+      - ./demo:/app/demo
+    networks:
+      - vimo_network
+
+volumes:
+  pgvector_data:
+
+networks:
+  vimo_network:
+    name: vimo_network
